@@ -160,21 +160,21 @@
 		* 顶级控制器
 
 			```
-			1 while True:
-			2 		latency=PollLCAppLatency()
+			1  	while True:
+			2  		latency=PollLCAppLatency()
 			3 		load=PollLCAppLoad()
 			4 		slack=(target-latency)/target
 			5 		if slack<0:
-			6 				DisableBE()
-			7 				EnterCooldown()
+			6 			DisableBE()
+			7 			EnterCooldown()
 			8 		elif load>0.85:
-			9 				DisableBE()
+			9 			DisableBE()
 			10 		elif load<0.80:
-			11 				EnableBE()
+			11 			EnableBE()
 			12 		elif slack<0.10:
-			13 				DisallowBEGrowth()
-			14 				if slack<0.05:
-			15						be_cores.Remove(be_cores.Size()-2)
+			13 			DisallowBEGrowth()
+			14 			if slack<0.05:
+			15				be_cores.Remove(be_cores.Size()-2)
 			16 		sleep(15)
 			
 			Algorithm 1: High-level controller.
@@ -187,33 +187,33 @@
 		* 核心和内存控制器	
 
 			```
-			1 def PredictedTotalBW():
+			1  	def PredictedTotalBW():
 			2 		return LcBwModel()+BeBw()+bw_derivative
-			3 while True:
+			3  	while True:
 			4 		MeasureDRAMBw()
 			5 		if total_bw>DRAM_LIMIT:
-			6				overage=total_bw-DRAM_LIMIT
-			7 				be_cores.Remove(overage/BeBwPerCore())
-			8 				continue
+			6			overage=total_bw-DRAM_LIMIT
+			7 			be_cores.Remove(overage/BeBwPerCore())
+			8 			continue
 			9 		if not CanGrowBE():
-			10 				continue
+			10 			continue
 			11 		if state==GROW_LLC:
-			12 				if PredictedTotalBW()>DRAM_LIMIT:
-			13 						state=GROW_CORES
-			14 				else:
-			15 						GrowCacheForBE()
-			16						MeasureDRAMBw()
-			17 						if bw_derivative>=0:
-			18 								Rollback()
-			19 								state=GROW_CORES
-			20 						if not BeBenefit():
-			21 								state=GROW_CORES
+			12 			if PredictedTotalBW()>DRAM_LIMIT:
+			13 				state=GROW_CORES
+			14 			else:
+			15 				GrowCacheForBE()
+			16				MeasureDRAMBw()
+			17 				if bw_derivative>=0:
+			18 					Rollback()
+			19 					state=GROW_CORES
+			20 				if not BeBenefit():
+			21 					state=GROW_CORES
 			22 		elif state==GROW_CORES:
-			23 				needed=LcBwModel()+BeBw()+BeBwPerCore()
-			24 				if needed>DRAM_LIMIT:
-			25 						state=GROW_LLC
-			26 				elif slack>0.10:
-			27 						be_cores.Add(1)
+			23 			needed=LcBwModel()+BeBw()+BeBwPerCore()
+			24 			if needed>DRAM_LIMIT:
+			25 				state=GROW_LLC
+			26 			elif slack>0.10:
+			27 				be_cores.Add(1)
 			28 		sleep(2)
 
 			Algorithm 2: Core & memory sub-controller.
