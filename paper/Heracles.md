@@ -320,7 +320,374 @@ streetview),Heracles仅仅允许他们执行在少量的核心上避免内存带
 			有一个重要的中左在于隔离共享LLC，包括基于软分区的替换策略，分区方式，和粒度精细化的分区。Tessellation为基于吞吐量的应用程序请求分区资源暴露了一个接口，大多数缓存分区方案基于一个有效的政策去优化集合吞吐量已经被评估。Heracles用于管理的是最近加入Intel的cpu中粗细粒度的分区方式，使用搜索一个正确大小来分配以避免违背SLO，我们期望当他们的fine-grained partitioning方案商业可用时Heracles将来能工作的更好
 			
 			lyer等人，探索广泛的服务质量(QoS)策略用于模拟隔离共享缓存和内存系统特性，他们集中吞吐量指标，比如IPC和MPI，并且不考虑关键性延迟或者其他的资源，如网络流量。Cook等人，评估基于吞吐量的应用程序的硬件缓存分区但没有考虑延迟关键性任务。Wu等人，比较了共享缓存在不同容量管理方案，提出了共享缓存的Ubik控制器，通过增强支持细粒度分区在负载转换时间和要求应用级别的改变通知运行时的负载变化来分配给延迟关键性任务。Heracles不需要去LC任务有任何的改变，而是依托与稳态的方式来管理缓存分区来缓慢的改变分区大小。
-			这里有多个对内存控制器的隔离和Qos特性的建议，
+			
+			这里有多个对内存控制器的隔离和Qos特性的建议，而我们的工作展示了延迟关键性人物对内存隔离的需求，这些特点不是商业可用的关注点，多个网络接口控制器实现了带宽的隔离和硬件方面的优先机制。不幸的是，这些特性不会被设备驱动程序暴露出来。因此，Heracles和相关的工程在网络优化隔离上当前使用的是linux的qdisc，支持网络隔离的硬件应该加强这方面的工作。
+			我们评估的LC任务不会使用磁盘或者ssd是为了积极的达到他们的延迟目标。不过，磁盘和ssd隔离非常相似与网络隔离，因此，相同与用于减轻网络干扰的原则和控制任然适用。对于普通磁盘我们列举出了集中可用的隔离技术:1)cgroups blkio控制器，2）本地指令队列(NCQ)优先级,3)文件系统的优先级队列，4）分区LC和BE任务到不同的磁盘，5）复制LC数据跨越多个磁盘以允许选择磁盘/相应，先响应或者低负载。对于SSD，1）很多SSD支持管道分区，分离管道和队列级别的优先级，2）SSD也支持刮起操作来允许LC请求超过BE任务的请求。
+			
+		* 干扰感知集群管理
+			
+			多个集群管理系统发现在混部任务和生成避免混部问题的计划中的干扰。Nathuji等人，开发了自反馈的方案能够调整资源分配来减轻混部虚拟机的干扰。Bubble-flux是一个在线方案能够检测到内存压力并且找到搭配方案以避免对延迟敏感任务的干扰，Bubble-flux有一个备份机制能够执行协调同位问题，但是这个机制会被香memkeyval这样的应用挑战，调整需要在毫秒粒度完成。DeepDive 检测和管理干扰在虚拟机系统上协同任务。CPI2节流低优先级的任务避免干扰重要的服务。最后Paragon和Quasar使用在线分类去估计干扰并且协调不太可能导致干扰的任务混部。
+			
+			Heracles的主要不同在于集中于延迟关键的任务和使用多种隔离方案为了允许规模化的不违背SLO的侵略性混部。很多上面的方法使用IPC而不是延迟做为性能指标。不过可以把Heracles和干扰感知集群管理器联合在一起去优化BE任务的布局。
+		
+		* 延迟关键性任务
+
+			这也有一个重要的工作在于优化延迟关键性任务的各种方面，包括能量比例，网络性能，和硬件加速。Heracles对这些项目大部分是正交的。
+	
+	7. 结论
+
+		我们展示了Heracles，一个启发式自反馈系统来管理四种隔离机制是的延迟关键性任务能够与批处理任务混部而不会导致违背SLO。我们在Heracles中使用多个来源的经验特征干扰来指导重要的启发:仅仅当一个共享资源饱和的时候干扰的影响变大，我们评估Heracles用的是在谷歌生产线真实硬件上的多个延迟关键任务和批量任务并且论证了囊括了延迟敏感任务没有违背SLO所有的评估场景为平均90%的利用率。通过协调管理多个隔离机制，Heracles能够混部之前会导致违背SLO的任务。相比于单独的节能机制，Heracles通过提高利用率增加了整体的成本收益。
+	
+	8. 致谢
+
+		我们真诚地感谢Luiz Barroso和Chris Johnson帮助和洞察力使我们的工作成为可能，还要感谢Christina Delimitrou，Caroline Suen和匿名评论者对此的早期手稿版本的反馈，Google研究授予了对这项工作支持，斯坦福实验数据中心实验室和NSF授权CNS-1422088。David Lo获Google博士生资助。
+		
+####参考
+
+[1]  “Iperf - The TCP/UDP Bandwidth Measurement Tool,” https://iperf.fr/.
+
+[2] “memcached,” http://memcached.org/.
+
+[3] “Intel
+R 64 and IA-32 Architectures Software Developer’s Manual,”
+vol. 3B: System Programming Guide, Part 2, Sep 2014.
+
+[4] Mohammad Al-Fares et al., “A Scalable, Commodity Data Center Network
+Architecture,” in Proc. of the ACM SIGCOMM 2008 Conference
+on Data Communication, ser. SIGCOMM ’08. New York, NY: ACM,
+2008.
+
+[5] Mohammad Alizadeh et al., “Data Center TCP (DCTCP),” in Proc. of
+the ACM SIGCOMM 2010 Conference, ser. SIGCOMM ’10. New
+York, NY: ACM, 2010.
+
+[6] Luiz Barroso et al., “The Case for Energy-Proportional Computing,”
+Computer, vol. 40, no. 12, Dec. 2007.
+
+[7] Luiz André Barroso et al., The Datacenter as a Computer: An Intro-
+duction to the Design of Warehouse-Scale Machines, 2nd ed. Morgan
+& Claypool Publishers, 2013.
+
+[8] Adam Belay et al., “IX: A Protected Dataplane Operating System for
+High Throughput and Low Latency,” in 11th USENIX Symposium on
+Operating Systems Design and Implementation (OSDI 14). Broomfield,
+CO: USENIX Association, Oct. 2014.
+
+[9] Sergey Blagodurov et al., “A Case for NUMA-aware Contention Management
+on Multicore Systems,” in Proc. of the 2011 USENIX Confer-
+ence on USENIX Annual Technical Conference, ser. USENIXATC’11.
+Berkeley, CA: USENIX Association, 2011.
+
+[10] Eric Boutin et al., “Apollo: Scalable and Coordinated Scheduling for
+Cloud-Scale Computing,” in 11th USENIX Symposium on Operating
+Systems Design and Implementation (OSDI 14). Broomfield, CO:
+USENIX Association, 2014.
+
+[11] Bob Briscoe, “Flow Rate Fairness: Dismantling a Religion,” SIG-
+COMM Comput. Commun. Rev., vol. 37, no. 2, Mar. 2007.
+
+[12] Martin A. Brown, “Traffic Control HOWTO,” http://linux-ip.net/
+articles/Traffic-Control-HOWTO/.
+
+[13] Marcus Carvalho et al., “Long-term SLOs for Reclaimed Cloud Computing
+Resources,” in Proc. of SOCC, Seattle, WA, Dec. 2014.
+
+[14] McKinsey & Company, “Revolutionizing data center efficiency,” Up-
+time Institute Symp., 2008.
+
+[15] Henry Cook et al., “A Hardware Evaluation of Cache Partitioning to
+Improve Utilization and Energy-efficiency While Preserving Responsiveness,”
+in Proc. of the 40th Annual International Symposium on
+Computer Architecture, ser. ISCA ’13. New York, NY: ACM, 2013.
+
+[16] Carlo Curino et al., “Reservation-based Scheduling: If You’re Late
+Don’t Blame Us!” in Proc. of the 5th annual Symposium on Cloud
+Computing, 2014.
+
+[17] Jeffrey Dean et al., “The tail at scale,” Commun. ACM, vol. 56, no. 2,
+Feb. 2013.
+
+[18] Christina Delimitrou et al., “Paragon: QoS-Aware Scheduling for
+Heterogeneous Datacenters,” in Proc. of the 18th Intl. Conf. on Archi-
+tectural Support for Programming Languages and Operating Systems
+(ASPLOS), Houston, TX, 2013.
+
+[19] Christina Delimitrou et al., “Quasar: Resource-Efficient and QoSAware
+Cluster Management,” in Proc. of the Nineteenth International
+Conference on Architectural Support for Programming Languages and
+Operating Systems (ASPLOS), Salt Lake City, UT, 2014.
+
+[20] Eiman Ebrahimi et al., “Fairness via Source Throttling: A Configurable
+and High-performance Fairness Substrate for Multi-core Memory Systems,”
+in Proc. of the Fifteenth Edition of ASPLOS on Architectural
+Support for Programming Languages and Operating Systems, ser. ASPLOS
+XV. New York, NY: ACM, 2010.
+
+[21] H. Esmaeilzadeh et al., “Dark silicon and the end of multicore scaling,”
+in Computer Architecture (ISCA), 2011 38th Annual International
+Symposium on, June 2011.
+
+[22] Sriram Govindan et al., “Cuanta: quantifying effects of shared on-chip
+resource interference for consolidated virtual machines,” in Proc. of
+the 2nd ACM Symposium on Cloud Computing, 2011.
+
+[23] Fei Guo et al., “From Chaos to QoS: Case Studies in CMP Resource
+Management,” SIGARCH Comput. Archit. News, vol. 35, no. 1, Mar.
+2007.
+
+[24] Fei Guo et al., “A Framework for Providing Quality of Service in Chip
+Multi-Processors,” in Proc. of the 40th Annual IEEE/ACM International
+Symposium on Microarchitecture, ser. MICRO 40. Washington, DC:
+IEEE Computer Society, 2007.
+
+[25] Nikos Hardavellas et al., “Toward Dark Silicon in Servers,” IEEE
+Micro, vol. 31, no. 4, 2011.
+
+[26] Lisa R. Hsu et al., “Communist, Utilitarian, and Capitalist Cache
+Policies on CMPs: Caches As a Shared Resource,” in Proc. of the 15th
+International Conference on Parallel Architectures and Compilation
+Techniques, ser. PACT ’06. New York, NY: ACM, 2006.
+
+[27] Intel, “Serial ATA II Native Command Queuing Overview,”
+http://download.intel.com/support/chipsets/imsm/sb/sata2_ncq_
+overview.pdf, 2003.
+
+[28] Teerawat Issariyakul et al., Introduction to Network Simulator NS2,
+1st ed. Springer Publishing Company, Incorporated, 2010.
+
+[29] Ravi Iyer, “CQoS: A Framework for Enabling QoS in Shared Caches of
+CMP Platforms,” in Proc. of the 18th Annual International Conference
+on Supercomputing, ser. ICS ’04. New York, NY: ACM, 2004.
+
+[30] Ravi Iyer et al., “QoS Policies and Architecture for Cache/Memory in
+CMP Platforms,” in Proc. of the 2007 ACM SIGMETRICS International
+Conference on Measurement and Modeling of Computer Systems, ser.
+SIGMETRICS ’07. New York, NY: ACM, 2007.
+
+[31] Vijay Janapa Reddi et al., “Web Search Using Mobile Cores: Quantifying
+and Mitigating the Price of Efficiency,” SIGARCH Comput. Archit.
+News, vol. 38, no. 3, Jun. 2010.
+
+[32] Min Kyu Jeong et al., “A QoS-aware Memory Controller for Dynamically
+Balancing GPU and CPU Bandwidth Use in an MPSoC,” in Proc.
+of the 49th Annual Design Automation Conference, ser. DAC ’12. New
+York, NY: ACM, 2012.
+
+[33] Vimalkumar Jeyakumar et al., “EyeQ: Practical Network Performance
+Isolation at the Edge,” in Proc. of the 10th USENIX Conference on
+Networked Systems Design and Implementation, ser. nsdi’13. Berkeley,
+CA: USENIX Association, 2013.
+
+[34] Svilen Kanev et al., “Tradeoffs between Power Management and Tail
+Latency in Warehouse-Scale Applications,” in IISWC, 2014.
+
+[35] Rishi Kapoor et al., “Chronos: Predictable Low Latency for Data
+Center Applications,” in Proc. of the Third ACM Symposium on Cloud
+Computing, ser. SoCC ’12. New York, NY: ACM, 2012.
+
+[36] Harshad Kasture et al., “Ubik: Efficient Cache Sharing with Strict
+QoS for Latency-CriticalWorkloads,” in Proc. of the 19th international
+conference on Architectural Support for Programming Languages and
+Operating Systems (ASPLOS-XIX), March 2014.
+
+[37] Wonyoung Kim et al., “System level analysis of fast, per-core DVFS
+using on-chip switching regulators,” in High Performance Computer
+Architecture, 2008. HPCA 2008. IEEE 14th International Symposium
+on, Feb 2008.
+
+[38] Quoc Le et al., “Building high-level features using large scale unsupervised
+learning,” in International Conference in Machine Learning,
+2012.
+
+[39] Jacob Leverich et al., “Reconciling High Server Utilization and Submillisecond
+Quality-of-Service,” in SIGOPS European Conf. on Com-
+puter Systems (EuroSys), 2014.
+
+[40] Bin Li et al., “CoQoS: Coordinating QoS-aware Shared Resources in
+NoC-based SoCs,” J. Parallel Distrib. Comput., vol. 71, no. 5, May
+2011.
+
+[41] Kevin Lim et al., “Thin Servers with Smart Pipes: Designing SoC
+Accelerators for Memcached,” in Proc. of the 40th Annual International
+Symposium on Computer Architecture, 2013.
+
+[42] Kevin Lim et al., “System-level Implications of Disaggregated Memory,”
+in Proc. of the 2012 IEEE 18th International Symposium on High-
+Performance Computer Architecture, ser. HPCA ’12. Washington,
+DC: IEEE Computer Society, 2012.
+
+[43] Jiang Lin et al., “Gaining insights into multicore cache partitioning:
+Bridging the gap between simulation and real systems,” in High Perfor-
+mance Computer Architecture, 2008. HPCA 2008. IEEE 14th Interna-
+tional Symposium on, Feb 2008.
+
+[44] Huan Liu, “A Measurement Study of Server Utilization in Public
+Clouds,” in Dependable, Autonomic and Secure Computing (DASC),
+2011 IEEE Ninth Intl. Conf. on, 2011.
+
+[45] Rose Liu et al., “Tessellation: Space-time Partitioning in a Manycore
+Client OS,” in Proc. of the First USENIX Conference on Hot Topics
+in Parallelism, ser. HotPar’09. Berkeley, CA: USENIX Association,
+2009.
+
+[46] Yanpei Liu et al., “SleepScale: Runtime Joint Speed Scaling and Sleep
+States Management for Power Efficient Data Centers,” in Proceeding of
+the 41st Annual International Symposium on Computer Architecuture,
+ser. ISCA ’14. Piscataway, NJ: IEEE Press, 2014.
+
+[47] David Lo et al., “Towards Energy Proportionality for Large-scale
+Latency-critical Workloads,” in Proceeding of the 41st Annual In-
+ternational Symposium on Computer Architecuture, ser. ISCA ’14.
+Piscataway, NJ: IEEE Press, 2014.
+
+[48] Krishna T. Malladi et al., “Towards Energy-proportional Datacenter
+Memory with Mobile DRAM,” SIGARCH Comput. Archit. News,
+vol. 40, no. 3, Jun. 2012.
+
+[49] R Manikantan et al., “Probabilistic Shared Cache Management
+(PriSM),” in Proc. of the 39th Annual International Symposium on
+Computer Architecture, ser. ISCA ’12. Washington, DC: IEEE Computer
+Society, 2012.
+
+[50] J. Mars et al., “Increasing Utilization in Modern Warehouse-Scale
+Computers Using Bubble-Up,” Micro, IEEE, vol. 32, no. 3, May 2012.
+
+[51] Jason Mars et al., “Bubble-Up: Increasing Utilization in Modern Warehouse
+Scale Computers via Sensible Co-locations,” in Proc. of the 44th
+Annual IEEE/ACM Intl. Symp. on Microarchitecture, ser. MICRO-44
+’11, 2011.
+
+[52] Paul Marshall et al., “Improving Utilization of Infrastructure Clouds,”
+in Proc. of the 2011 11th IEEE/ACM International Symposium on
+Cluster, Cloud and Grid Computing, 2011.
+
+[53] David Meisner et al., “PowerNap: Eliminating Server Idle Power,” in
+Proc. of the 14th Intl. Conf. on Architectural Support for Programming
+Languages and Operating Systems, ser. ASPLOS XIV, 2009.
+
+[54] David Meisner et al., “Power Management of Online Data-Intensive
+Services,” in Proc. of the 38th ACM Intl. Symp. on Computer Architec-
+ture, 2011.
+
+[55] Paul Menage, “CGROUPS,” https://www.kernel.org/doc/
+Documentation/cgroups/cgroups.txt.
+
+[56] Sai Prashanth Muralidhara et al., “Reducing Memory Interference in
+Multicore Systems via Application-aware Memory Channel Partitioning,”
+in Proc. of the 44th Annual IEEE/ACM International Symposium
+on Microarchitecture, ser. MICRO-44. New York, NY: ACM, 2011.
+
+[57] Vijay Nagarajan et al., “ECMon: Exposing Cache Events for Monitoring,”
+in Proc. of the 36th Annual International Symposium on Computer
+Architecture, ser. ISCA ’09. New York, NY: ACM, 2009.
+
+[58] R. Nathuji et al., “Q-Clouds: Managing Performance Interference
+Effects for QoS-Aware Clouds,” in Proc. of EuroSys, France, 2010.
+
+[59] K.J. Nesbit et al., “Fair Queuing Memory Systems,” in Microarchitec-
+ture, 2006. MICRO-39. 39th Annual IEEE/ACM International Sympo-
+sium on, Dec 2006.
+
+[60] Dejan Novakovic et al., “DeepDive: Transparently Identifying and
+Managing Performance Interference in Virtualized Environments,” in
+Proc. of the USENIX Annual Technical Conference (ATC’13), San Jose,
+CA, 2013.
+
+[61] W. Pattara-Aukom et al., “Starvation prevention and quality of service
+in wireless LANs,” in Wireless Personal Multimedia Communications,
+2002. The 5th International Symposium on, vol. 3, Oct 2002.
+2003. 
+[62] M. Podlesny et al., “Solving the TCP-Incast Problem with Application-
+Level Scheduling,” in Modeling, Analysis Simulation of Computer and
+Telecommunication Systems (MASCOTS), 2012 IEEE 20th Interna-
+tional Symposium on, Aug 2012.
+
+[63] Andrew Putnam et al., “A Reconfigurable Fabric for Accelerating
+Large-scale Datacenter Services,” in Proceeding of the 41st Annual
+International Symposium on Computer Architecuture, ser. ISCA ’14.
+Piscataway, NJ: IEEE Press, 2014.
+
+[64] M.K. Qureshi et al., “Utility-Based Cache Partitioning: A Low-
+Overhead, High-Performance, Runtime Mechanism to Partition
+Shared Caches,” in Microarchitecture, 2006. MICRO-39. 39th Annual
+IEEE/ACM International Symposium on, Dec 2006.
+
+[65] Parthasarathy Ranganathan et al., “Reconfigurable Caches and Their
+Application to Media Processing,” in Proc. of the 27th Annual Inter-
+national Symposium on Computer Architecture, ser. ISCA ’00. New
+York, NY: ACM, 2000.
+
+[66] Charles Reiss et al., “Heterogeneity and Dynamicity of Clouds at Scale:
+Google Trace Analysis,” in ACM Symp. on Cloud Computing (SoCC),
+Oct. 2012.
+
+[67] Chuck Rosenberg, “Improving Photo Search: A Step Across
+the Semantic Gap,” http://googleresearch.blogspot.com/2013/06/
+improving-photo-search-step-across.html.
+
+[68] Daniel Sanchez et al., “Vantage: Scalable and Efficient Fine-grain
+Cache Partitioning,” SIGARCH Comput. Archit. News, vol. 39, no. 3,
+Jun. 2011.
+
+[69] Yoon Jae Seong et al., “Hydra: A Block-Mapped Parallel Flash Memory
+Solid-State Disk Architecture,” Computers, IEEE Transactions on,
+vol. 59, no. 7, July 2010.
+
+[70] Akbar Sharifi et al., “METE: Meeting End-to-end QoS in Multicores
+Through System-wide Resource Management,” in Proc. of the ACM
+SIGMETRICS Joint International Conference on Measurement and
+Modeling of Computer Systems, ser. SIGMETRICS ’11. New York,
+NY: ACM, 2011.
+
+[71] Shekhar Srikantaiah et al., “SHARP Control: Controlled Shared Cache
+Management in Chip Multiprocessors,” in Proc. of the 42Nd Annual
+IEEE/ACM International Symposium on Microarchitecture, ser. MICRO
+42. New York, NY: ACM, 2009.
+
+[72] Shingo Tanaka et al., “High Performance Hardware-Accelerated Flash
+Key-Value Store,” in The 2014 Non-volatile Memories Workshop
+(NVMW), 2014.
+
+[73] Lingjia Tang et al., “The impact of memory subsystem resource sharing
+on datacenter applications,” in Computer Architecture (ISCA), 2011
+38th Annual International Symposium on, June 2011.
+
+[74] Arunchandar Vasan et al., “Worth their watts? - an empirical study
+of datacenter servers,” in Intl. Symp. on High-Performance Computer
+Architecture, 2010.
+
+[75] Nedeljko Vasi´c et al., “DejaVu: accelerating resource allocation in
+virtualized environments,” in Proc. of the seventeenth international
+conference on Architectural Support for Programming Languages and
+Operating Systems (ASPLOS), London, UK, 2012.
+
+[76] Christo Wilson et al., “Better Never Than Late: Meeting Deadlines in
+Datacenter Networks,” in Proc. of the ACM SIGCOMM 2011 Confer-
+ence, ser. SIGCOMM ’11. New York, NY: ACM, 2011.
+
+[77] Carole-Jean Wu et al., “A Comparison of Capacity Management
+Schemes for Shared CMP Caches,” in Proc. of the 7th Workshop on
+Duplicating, Deconstructing, and Debunking, vol. 15. Citeseer, 2008.
+
+[78] Yuejian Xie et al., “PIPP: Promotion/Insertion Pseudo-partitioning of
+Multi-core Shared Caches,” in Proc. of the 36th Annual International
+Symposium on Computer Architecture, ser. ISCA ’09. New York, NY:
+ACM, 2009.
+
+[79] Hailong Yang et al., “Bubble-flux: Precise Online QoS Management
+for Increased Utilization in Warehouse Scale Computers,” in Proc. of
+the 40th Annual Intl. Symp. on Computer Architecture, ser. ISCA ’13,
+2013.
+
+[80] Xiao Zhang et al., “CPI2: CPU performance isolation for shared compute
+clusters,” in Proc. of the 8th ACM European Conference on Com-
+puter Systems (EuroSys), Prague, Czech Republic, 2013.
+
+[81] Yunqi Zhang et al., “SMiTe: Precise QoS Prediction on Real-System
+SMT Processors to Improve Utilization inWarehouse Scale Computers,”
+in International Symposium on Microarchitecture (MICRO), 2014.
+	
+
 			
 			
 			
