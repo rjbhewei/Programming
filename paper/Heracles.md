@@ -91,6 +91,8 @@
 		
 3. 干扰分析
 
+	![MacDown Screenshot](img/heracles_1.png)
+	
 	图一三种LC负载的尾延迟表现出干扰微基线的影响，在表中每一行展示的是在某种负载下LC任务和混部微基准下的尾延迟情况，只有在尾延迟小于SLO的100%的情况下这些干扰的影响才能够被接受，我们使用全彩色的代码来标示时延，用红/黄来标示违反了SLO延迟
 	
 	通过brain程序的运行的那行记录，我们理解注意到当前的操作系统的隔离机制是不足以让LC和BE进行混部的，即使在低负载的情况下，BE任务在共享资源上创造足够的压力会导致这三种LC任务的SLO被违背，很大的贡献在于操作系统允许两个任务运行在相同的核心上和运行在相同的超线程上，进一步加重了干扰，尾延迟最后超过了SLO的300%，建议干扰管制的集群管理，比如Paragon和Bubble-Up，讲不会允许这种情况混部，为了能够暴力的达成这种任务混部，我们不仅仅需要做到不允许不同的任务运行在相同的核心或者超线程上，我们还需要更强的隔离机制
@@ -155,6 +157,8 @@
 		
 	3. heracles 控制器
 
+		![MacDown Screenshot](img/heracles_2.png)
+
 		heracles运行一个独立的实例在每个服务器上，管理混部任务的本地交互，如图2所示，由三个子控制器组成(核心和内存控制器，cpu能耗控制器和网络流量控制器)被顶级控制器(top-level controller)协调,子控制器是相互对立运行的，确保各自的共享资源不饱和
 		
 		* 顶级控制器
@@ -185,6 +189,8 @@
 			当这两个保护措施没有激活的时候，顶级控制器通过slack去子控制器去提供资源给BE任务，如果slack小于10%，则指示子控制器禁止BE任务的增长，以保证一个安全的边缘，如果slack下降到了低于5%，则指示cpu核心子控制器从BE任务的中切换核心到LC任务，这回提高LC任务的延迟同事减少BE任务对任何资源的干扰能力，如果slack高于10%，则知识子控制器允许BE任务获得更大的共享系统资源，每个子控制器独立的分配资源决策，当资源使用不饱和时提供信息	
 			
 		* 核心和内存控制器	
+
+			![MacDown Screenshot](img/heracles_3.png)
 
 			```
 			1  	def PredictedTotalBW():
@@ -277,6 +283,8 @@
 
 	2. 单节点实验结果
 
+		![MacDown Screenshot](img/heracles_4.png)
+
 		* SLO延迟
 
 			图4展示了三种LC任务和BE任务混部在Heracles控制下可能的负载的影响，注意到Heracles企图运行尽可能多的BE任务并且最大化他们接受到的资源，在混部中所有负载的情况，这里使用Heracles没有违背SLO，即使是brai任务也是正确的，这个任务即是在最好的操作系统隔离机制将使一些LC任务不可用，这个验证了控制器保持共享资源不会饱和以及在任何负载下分配足够的资源给LC任务，Heracles维持一个小的延迟松弛度做为保护带去避免毛刺和不稳定的控制。也验证了在尾延迟的本地资源是足够的，稳定的控制了应用毫秒级和微妙级的SLOs，有趣的是，websearch当生成内存带宽离线分析模型并且执行实验的时二进制和分片被改变。然而，Heracles对这些改变能弹性处理并且对一些过时的模型处理的很好。
@@ -284,9 +292,14 @@
 		
 		* 服务的利用率
 
+			![MacDown Screenshot](img/heracles_5.png)
+
 			图5展示了EMU在使用Heracles管理混部线上的LC和BE任务，在所有的情况下，我们实现了重要的EMU的增加。当两个(websearch 和 brain)cpu密集型任务和能耗大的任务结合,Heracles任然实现了至少75%EMU。当websearch结合内存带宽高要求的steetview，Heracles能够提取足够的资源使得websearch的负载在25%到70%之间时EMU超过100%，这是因为websearch和streetview有着互补的资源需求，这里websearch需要绑定更多的cpu计算而streeview需要绑定更多的内存带宽。EMU的结果对于ml_cluster和memkeyval也是同样的。通过动态管理多个隔离机制，Heracles有机会提高EMU，或则会缺失避免干扰的调度技术
 		
 		* 共享资源的利用率
+
+			![MacDown Screenshot](img/heracles_6.png)
+			![MacDown Screenshot](img/heracles_7.png)
 
 			图6绘制了在Heracles控制下共享资源的利用率(核心，能耗和内存带宽)，对于memkeyval，图7绘制了我们测量了网络流量带宽.
 			
@@ -298,6 +311,8 @@ streetview),Heracles仅仅允许他们执行在少量的核心上避免内存带
 		3. websearch 集群实验结果
 
 			我们也评估了Heracles在websearch小型集群的情况，以10台服务器做为全尺寸集群的代理来模拟。这个集群采用fan-out架构对于每个用户请求会扩散到all其他的服务器并且合并他们的结果。它的SLO延迟被定义在主请求节点平均延迟超过30秒，用u/30s来表示。这个服务的目标SLO延迟设置在没有混部任务的时候在集群中90%负载时为u/30s。Heracles运行每个节点在主节点延迟目标集99%分位满足SLO，我们使用Heracles去执行brain在一半的机器节点并且另一半执行streeview程序，Heracles在所有节点上使用websearch相同的内存带宽离线模型，尽管websearch每个节点有不同的分片，当websearch没有满负载并且有很高的其他混部任务潜在影响下我们捕获12小时日常模式下的匿名请求来产生负载
+			
+			![MacDown Screenshot](img/heracles_8.png)
 			
 			* SLO延迟
 
